@@ -10,7 +10,7 @@
 #include <stdbool.h> 
 #include <omp.h>
 
-#define MAX_THREADS 16
+#define MAX_THREADS 1
 #define MD5_READ_BYTES_SIZE 1024
 
 pthread_mutex_t lock;
@@ -20,7 +20,6 @@ volatile sig_atomic_t thread_working[MAX_THREADS];
 
 int file_count;
 char** files;
-char** tmp_ptr;
 
 typedef struct thread_data {
     int thread_id;
@@ -28,6 +27,8 @@ typedef struct thread_data {
     unsigned char* md5_buffer;
 } thread_data;
 
+// Returns the index of a non-working thread from the threadpool
+// If all threads are working then it returns -1
 int get_non_working_thread()
 {
     int index = -1;
@@ -44,6 +45,7 @@ int get_non_working_thread()
     return index;
 }
 
+// Sets a working thread boolean to a value
 void set_working_thread(int* index, bool value)
 {
     pthread_mutex_lock(&thread_get_lock);
@@ -51,6 +53,7 @@ void set_working_thread(int* index, bool value)
     pthread_mutex_unlock(&thread_get_lock);
 }
 
+// Computes the MD5 hash of a file
 void md5_of_file(const char* fpath, unsigned char c[])
 {
     FILE* inFile = fopen(fpath, "rb");
@@ -65,6 +68,7 @@ void md5_of_file(const char* fpath, unsigned char c[])
     fclose(inFile);
 }
 
+// Computes the final MD5 hash of all hashes from the files.
 void final_md5_combine(unsigned char** md5_hashes, unsigned char c[])
 {
     unsigned char md5_hash_bfr[MD5_DIGEST_LENGTH];
@@ -78,6 +82,7 @@ void final_md5_combine(unsigned char** md5_hashes, unsigned char c[])
     MD5_Final(c, &mdContext);
 }
 
+// This is where the thread starts its execution
 void* thread_entry(void* value) 
 {
     thread_data *data = (thread_data*)value;
@@ -96,11 +101,12 @@ void* thread_entry(void* value)
     pthread_mutex_unlock(&lock);
 }
 
+// Maps the tree-file structure and saves it in `files`
 int map_tree(const char* fpath, const struct stat *sb, int typeflag) 
 {
     if (S_ISREG(sb->st_mode))
     {
-        tmp_ptr = realloc(files, (file_count + 1) * sizeof(char*));
+        char** tmp_ptr = realloc(files, (file_count + 1) * sizeof(char*));
         tmp_ptr[file_count] = (char *) malloc(strlen(fpath)+1);
         strcpy(tmp_ptr[file_count], fpath);
         files = tmp_ptr;
