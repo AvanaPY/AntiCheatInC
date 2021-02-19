@@ -14,7 +14,7 @@
 #define MD5_READ_BYTES_SIZE 1024
 #define FTW_MAX_FILE_HANDLERS 20
 
-#define HASH_TIME_OUTPUT
+// #define HASH_TIME_OUTPUT
 
 pthread_mutex_t lock;
 pthread_mutex_t thread_get_lock; 
