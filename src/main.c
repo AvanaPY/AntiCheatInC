@@ -1,0 +1,195 @@
+#include <stdlib.h>
+
+#include <ftw.h>
+
+#include <stdio.h>
+#include <openssl/md5.h>
+#include <pthread.h>
+
+#include <stdatomic.h>
+#include <stdbool.h> 
+#include <omp.h>
+
+#define MAX_THREADS 16
+#define MD5_READ_BYTES_SIZE 1024
+
+pthread_mutex_t lock;
+pthread_mutex_t thread_get_lock; 
+pthread_t threads[MAX_THREADS];
+volatile sig_atomic_t thread_working[MAX_THREADS];
+
+int file_count;
+char** files;
+char** tmp_ptr;
+
+typedef struct thread_data {
+    int thread_id;
+    int file_id;
+    unsigned char* md5_buffer;
+} thread_data;
+
+int get_non_working_thread()
+{
+    int index = -1;
+    pthread_mutex_lock(&thread_get_lock);
+    for(int i = 0; i < MAX_THREADS; i++)
+    {
+        if(!thread_working[i])
+        {
+            index = i;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&thread_get_lock);
+    return index;
+}
+
+void set_working_thread(int* index, bool value)
+{
+    pthread_mutex_lock(&thread_get_lock);
+    thread_working[*index] = value;
+    pthread_mutex_unlock(&thread_get_lock);
+}
+
+void md5_of_file(const char* fpath, unsigned char c[])
+{
+    FILE* inFile = fopen(fpath, "rb");
+    unsigned char data[MD5_READ_BYTES_SIZE];
+    MD5_CTX mdContext;
+    MD5_Init(&mdContext);
+
+    int bytes;
+    while ((bytes = fread(data, 1, MD5_READ_BYTES_SIZE, inFile)) != 0) 
+        MD5_Update(&mdContext, data, bytes);
+    MD5_Final(c, &mdContext);
+    fclose(inFile);
+}
+
+void final_md5_combine(unsigned char** md5_hashes, unsigned char c[])
+{
+    unsigned char md5_hash_bfr[MD5_DIGEST_LENGTH];
+    MD5_CTX mdContext;
+    MD5_Init(&mdContext);
+    for(int i = 0; i < file_count; i++)
+    {
+        memcpy(md5_hash_bfr, md5_hashes[i], MD5_DIGEST_LENGTH);
+        MD5_Update(&mdContext, md5_hash_bfr, MD5_DIGEST_LENGTH);
+    }
+    MD5_Final(c, &mdContext);
+}
+
+void* thread_entry(void* value) 
+{
+    thread_data *data = (thread_data*)value;
+    int file_id = (data->file_id);
+    int thread_id = (data->thread_id);
+
+    char* file = files[file_id];
+    unsigned char c[MD5_DIGEST_LENGTH]; 
+    md5_of_file(file, c);
+    
+    pthread_mutex_lock(&lock);
+    int container_offset = MD5_DIGEST_LENGTH * file_id;
+    for(int i = 0; i < MD5_DIGEST_LENGTH; i++)
+        (data->md5_buffer)[i] = c[i];
+    set_working_thread(&thread_id, false);
+    pthread_mutex_unlock(&lock);
+}
+
+int map_tree(const char* fpath, const struct stat *sb, int typeflag) 
+{
+    if (S_ISREG(sb->st_mode))
+    {
+        tmp_ptr = realloc(files, (file_count + 1) * sizeof(char*));
+        tmp_ptr[file_count] = (char *) malloc(strlen(fpath)+1);
+        strcpy(tmp_ptr[file_count], fpath);
+        files = tmp_ptr;
+        file_count += 1;
+    }
+    return 0;
+}
+
+int main(int argc, char **argv) 
+{
+    if(argc < 3){
+        printf("Invalid arguments. Example usage: %s file-tree <desired_md5>", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    if(pthread_mutex_init(&lock, NULL) != 0 && pthread_mutex_init(&thread_get_lock, NULL) != 0)
+    {
+        printf("\nMutex lock init failed\n");
+        return EXIT_FAILURE;
+    }
+
+    double t0 = omp_get_wtime();
+
+    const char *dirpath = argv[1];
+    const char *desired_md5 = argv[2];
+    ftw(dirpath, map_tree, 10);
+
+    const int s = (const int)file_count;
+    unsigned char** md5_hashes = malloc(file_count * sizeof(char*));
+    thread_data **data_list = malloc(file_count * sizeof(thread_data*));
+    for(int i = 0; i < file_count; i++)
+    {
+        md5_hashes[i] = malloc(MD5_DIGEST_LENGTH);
+    }
+    for(int i = 0; i < file_count; i++)
+    {
+        data_list[i] = (thread_data*)malloc(sizeof(thread_data));
+        data_list[i]->file_id=i;
+        data_list[i]->md5_buffer=md5_hashes[i];
+    }
+
+    // Compute hashes
+    bool found_thread = false;
+    int i, thread_id;
+    for(i = 0; i < file_count; i++)
+    {
+        while(!found_thread)
+        {
+            thread_id = get_non_working_thread();
+            
+            if(thread_id >= 0)
+            {
+                // printf("Found thread %i\n", thread_id);
+                found_thread = true;
+                data_list[i]->thread_id = thread_id;
+                set_working_thread(&thread_id, true);
+                pthread_create(&threads[thread_id], NULL, thread_entry, (void*)data_list[i]);
+            }
+        }
+        found_thread = false;
+    }
+
+    for(int i = 0; i < MAX_THREADS; i++)
+        pthread_join(threads[i], NULL);
+
+    unsigned char c[MD5_DIGEST_LENGTH];
+    final_md5_combine(md5_hashes, c);
+
+    char hash_md5[33];
+    for(int i = 0; i < 16; i++)
+        sprintf(&hash_md5[i*2], "%02x", c[i]);
+
+    double seconds = omp_get_wtime() - t0;
+    printf("True hash: %s\n", desired_md5);
+    printf("Game hash: %s\n", hash_md5);
+    if(strcmp(desired_md5, hash_md5) == 0)
+        printf("Game files OK\n");
+    else
+        printf("Game files differ!\n");
+    printf("Hash time: %f\n", seconds);
+    printf("File counts: %i\n", file_count);
+
+    for(int i = 0; i < file_count; i++){
+        free(files[i]);
+        free(md5_hashes[i]);
+        free(data_list[i]);
+    }
+    free(files);
+    free(md5_hashes);
+    free(data_list);
+    return EXIT_SUCCESS;
+}

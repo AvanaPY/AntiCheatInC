@@ -1,0 +1,8 @@
+include
+pico-sdk-master
+wallpapers
+.vscode
+make.exe.stackdump
+hash_test_tree
+openssl-1.1.1j
+assignment1_dv1625
