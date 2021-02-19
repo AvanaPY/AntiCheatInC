@@ -12,6 +12,7 @@
 
 #define MAX_THREADS 1
 #define MD5_READ_BYTES_SIZE 1024
+#define FTW_MAX_FILE_HANDLERS 20
 
 pthread_mutex_t lock;
 pthread_mutex_t thread_get_lock; 
@@ -132,7 +133,7 @@ int main(int argc, char **argv)
 
     const char *dirpath = argv[1];
     const char *desired_md5 = argv[2];
-    ftw(dirpath, map_tree, 10);
+    ftw(dirpath, map_tree, FTW_MAX_FILE_HANDLERS);
 
     const int s = (const int)file_count;
     unsigned char** md5_hashes = malloc(file_count * sizeof(char*));
