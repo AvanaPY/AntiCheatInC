@@ -4,7 +4,7 @@ MAIN 	:= $(SRC)/main.c
 GCC		:= GCC
 FLAGS	:= -I $(INC) -lcrypto -lssl -fopenmp
 
-run: compile
+run: clean compile
 	@chmod +x main.exe
 	@echo TEST 1 hash_test_tree
 	@./main.exe hash_test_tree d12f92112d97e1454b859f775bed11ed
@@ -15,3 +15,6 @@ run: compile
 
 compile: 
 	@gcc $(MAIN) -o main.exe $(FLAGS) 
+
+clean:
+	-@rm -f main.exe
