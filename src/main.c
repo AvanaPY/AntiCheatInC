@@ -14,6 +14,8 @@
 #define MD5_READ_BYTES_SIZE 1024
 #define FTW_MAX_FILE_HANDLERS 20
 
+#define HASH_TIME_OUTPUT
+
 pthread_mutex_t lock;
 pthread_mutex_t thread_get_lock; 
 pthread_t threads[MAX_THREADS];
@@ -187,9 +189,11 @@ int main(int argc, char **argv)
         printf("Game files OK\n");
     else
         printf("Game files differ!\n");
+
+    #ifdef HASH_TIME_OUTPUT
     printf("Hash time: %f\n", seconds);
     printf("File counts: %i\n", file_count);
-
+    #endif
     for(int i = 0; i < file_count; i++){
         free(files[i]);
         free(md5_hashes[i]);
