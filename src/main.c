@@ -16,6 +16,9 @@
 
 #define HASH_TIME_OUTPUT
 
+const char* IGNORED_EXTENSIONS[] = { ".cfg" };
+const size_t IGNORED_EXTENSIONS_COUNT = sizeof(IGNORED_EXTENSIONS) / sizeof(char*);
+
 pthread_mutex_t lock;
 pthread_mutex_t thread_get_lock; 
 pthread_t threads[MAX_THREADS];
@@ -109,6 +112,15 @@ int map_tree(const char* fpath, const struct stat *sb, int typeflag)
 {
     if (S_ISREG(sb->st_mode))
     {
+        char* ext = strrchr(fpath, '.');
+        if(ext != NULL)
+        {
+            for(int i = 0; i < IGNORED_EXTENSIONS_COUNT; i++)
+                if(strcmp(IGNORED_EXTENSIONS[i], ext) == 0){
+                    return 0; // Return if we want to ignore the extension
+                }
+        }
+
         char** tmp_ptr = realloc(files, (file_count + 1) * sizeof(char*));
         tmp_ptr[file_count] = (char *) malloc(strlen(fpath)+1);
         strcpy(tmp_ptr[file_count], fpath);
