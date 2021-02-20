@@ -135,15 +135,19 @@ int main(int argc, char **argv)
 
     const char *dirpath = argv[1];
     const char *desired_md5 = argv[2];
+
+    // Find all interesting files
     ftw(dirpath, map_tree, FTW_MAX_FILE_HANDLERS);
 
+    // Create some containers for data
     const int s = (const int)file_count;
-    unsigned char** md5_hashes = malloc(file_count * sizeof(char*));
-    thread_data **data_list = malloc(file_count * sizeof(thread_data*));
+    unsigned char** md5_hashes = malloc(file_count * sizeof(char*));     // MD5 hashes container
+    thread_data **data_list = malloc(file_count * sizeof(thread_data*)); // Data for each thread and file container
+
+    // Allocate data for all items in the containers
     for(int i = 0; i < file_count; i++)
-    {
         md5_hashes[i] = malloc(MD5_DIGEST_LENGTH);
-    }
+    
     for(int i = 0; i < file_count; i++)
     {
         data_list[i] = (thread_data*)malloc(sizeof(thread_data));
@@ -151,11 +155,12 @@ int main(int argc, char **argv)
         data_list[i]->md5_buffer=md5_hashes[i];
     }
 
-    // Compute hashes
+    // Compute hashes in parallel using the threadpool
     bool found_thread = false;
-    int i, thread_id;
-    for(i = 0; i < file_count; i++)
+    int thread_id;
+    for(int i = 0; i < file_count; i++)
     {
+        found_thread = false;
         while(!found_thread)
         {
             thread_id = get_non_working_thread();
@@ -169,20 +174,22 @@ int main(int argc, char **argv)
                 pthread_create(&threads[thread_id], NULL, thread_entry, (void*)data_list[i]);
             }
         }
-        found_thread = false;
     }
-
+    // Join all threads to make sure computing all hashes are done
     for(int i = 0; i < MAX_THREADS; i++)
         pthread_join(threads[i], NULL);
 
+    // Compute final hash
     unsigned char c[MD5_DIGEST_LENGTH];
     final_md5_combine(md5_hashes, c);
+    double seconds = omp_get_wtime() - t0;
 
+    // Turn the final hash into a readable 33-char string
     char hash_md5[33];
     for(int i = 0; i < 16; i++)
         sprintf(&hash_md5[i*2], "%02x", c[i]);
-
-    double seconds = omp_get_wtime() - t0;
+    
+    // Print the true hash and the computed hash
     printf("True hash: %s\n", desired_md5);
     printf("Game hash: %s\n", hash_md5);
     if(strcmp(desired_md5, hash_md5) == 0)
@@ -190,10 +197,12 @@ int main(int argc, char **argv)
     else
         printf("Game files differ!\n");
 
-    #ifdef HASH_TIME_OUTPUT
+#ifdef HASH_TIME_OUTPUT
     printf("Hash time: %f\n", seconds);
     printf("File counts: %i\n", file_count);
-    #endif
+#endif
+
+    // Free all containers
     for(int i = 0; i < file_count; i++){
         free(files[i]);
         free(md5_hashes[i]);
