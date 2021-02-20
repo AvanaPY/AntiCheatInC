@@ -10,11 +10,11 @@
 #include <stdbool.h> 
 #include <omp.h>
 
-#define MAX_THREADS 1
+#define MAX_THREADS 5
 #define MD5_READ_BYTES_SIZE 1024
 #define FTW_MAX_FILE_HANDLERS 20
 
-#define HASH_TIME_OUTPUT
+// #define HASH_TIME_OUTPUT
 
 const char* IGNORED_EXTENSIONS[] = { ".cfg" };
 const size_t IGNORED_EXTENSIONS_COUNT = sizeof(IGNORED_EXTENSIONS) / sizeof(char*);
@@ -121,10 +121,9 @@ int map_tree(const char* fpath, const struct stat *sb, int typeflag)
                 }
         }
 
-        char** tmp_ptr = realloc(files, (file_count + 1) * sizeof(char*));
-        tmp_ptr[file_count] = (char *) malloc(strlen(fpath)+1);
-        strcpy(tmp_ptr[file_count], fpath);
-        files = tmp_ptr;
+        files = realloc(files, (file_count + 1) * sizeof(char*));
+        files[file_count] = (char *) malloc(strlen(fpath)+1);
+        strcpy(files[file_count], fpath);
         file_count += 1;
     }
     return 0;
@@ -143,10 +142,12 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    double t0 = omp_get_wtime();
 
     const char *dirpath = argv[1];
     const char *desired_md5 = argv[2];
+
+    double t0 = omp_get_wtime();
+    file_count = 0;
 
     // Find all interesting files
     ftw(dirpath, map_tree, FTW_MAX_FILE_HANDLERS);
@@ -158,10 +159,8 @@ int main(int argc, char **argv)
 
     // Allocate data for all items in the containers
     for(int i = 0; i < file_count; i++)
-        md5_hashes[i] = malloc(MD5_DIGEST_LENGTH);
-    
-    for(int i = 0; i < file_count; i++)
     {
+        md5_hashes[i] = (unsigned char*)malloc(MD5_DIGEST_LENGTH);
         data_list[i] = (thread_data*)malloc(sizeof(thread_data));
         data_list[i]->file_id=i;
         data_list[i]->md5_buffer=md5_hashes[i];
@@ -216,12 +215,12 @@ int main(int argc, char **argv)
 
     // Free all containers
     for(int i = 0; i < file_count; i++){
-        free(files[i]);
         free(md5_hashes[i]);
         free(data_list[i]);
+        free(files[i]);
     }
-    free(files);
     free(md5_hashes);
     free(data_list);
+    free(files);
     return EXIT_SUCCESS;
 }
