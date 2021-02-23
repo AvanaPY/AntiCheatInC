@@ -1,5 +1,8 @@
 /*
-    Written by Emil Karlström, Blekinge Tekniska Högskola, DVAMI19
+    Written by  Emil Karlström
+                Blekinge Tekniska Högskola
+                DVAMI19
+    Code for Assignment 2 of course DV1580
     No steal code P L O X 
 */
 #include <stdlib.h>
