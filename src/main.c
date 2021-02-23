@@ -70,14 +70,10 @@ void md5_of_file(const char* fpath, unsigned char c[])
 // Computes the final MD5 hash of all hashes from the files.
 void final_md5_combine(unsigned char** md5_hashes, unsigned char c[])
 {
-    unsigned char md5_hash_bfr[MD5_DIGEST_LENGTH];
     MD5_CTX mdContext;
     MD5_Init(&mdContext);
     for(int i = 0; i < file_count; i++)
-    {
-        memcpy(md5_hash_bfr, md5_hashes[i], MD5_DIGEST_LENGTH);
-        MD5_Update(&mdContext, md5_hash_bfr, MD5_DIGEST_LENGTH);
-    }
+        MD5_Update(&mdContext, md5_hashes[i], MD5_DIGEST_LENGTH);
     MD5_Final(c, &mdContext);
 }
 
