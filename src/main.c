@@ -1,3 +1,7 @@
+/*
+    Written by Emil Karlström, Blekinge Tekniska Högskola, DVAMI19
+    No steal code P L O X 
+*/
 #include <stdlib.h>
 
 #include <ftw.h>
@@ -10,19 +14,18 @@
 #include <stdbool.h> 
 #include <omp.h>
 
-#define MAX_THREADS 5
+#define MAX_THREADS 2
 #define MD5_READ_BYTES_SIZE 1024
 #define FTW_MAX_FILE_HANDLERS 20
 
-// #define HASH_TIME_OUTPUT
+#define HASH_TIME_OUTPUT
 
 const char* IGNORED_EXTENSIONS[] = { ".cfg" };
 const size_t IGNORED_EXTENSIONS_COUNT = sizeof(IGNORED_EXTENSIONS) / sizeof(char*);
 
 pthread_mutex_t lock;
-pthread_mutex_t thread_get_lock; 
 pthread_t threads[MAX_THREADS];
-volatile sig_atomic_t thread_working[MAX_THREADS];
+volatile int thread_working[MAX_THREADS];
 
 int file_count;
 char** files;
@@ -38,7 +41,6 @@ typedef struct thread_data {
 int get_non_working_thread()
 {
     int index = -1;
-    pthread_mutex_lock(&thread_get_lock);
     for(int i = 0; i < MAX_THREADS; i++)
     {
         if(!thread_working[i])
@@ -47,16 +49,13 @@ int get_non_working_thread()
             break;
         }
     }
-    pthread_mutex_unlock(&thread_get_lock);
     return index;
 }
 
 // Sets a working thread boolean to a value
 void set_working_thread(int* index, bool value)
 {
-    pthread_mutex_lock(&thread_get_lock);
     thread_working[*index] = value;
-    pthread_mutex_unlock(&thread_get_lock);
 }
 
 // Computes the MD5 hash of a file
@@ -136,18 +135,17 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    if(pthread_mutex_init(&lock, NULL) != 0 && pthread_mutex_init(&thread_get_lock, NULL) != 0)
+    if(pthread_mutex_init(&lock, NULL) != 0)
     {
-        printf("\nMutex lock init failed\n");
+        printf("\nMutex lock initialization failed\n");
         return EXIT_FAILURE;
     }
-
 
     const char *dirpath = argv[1];
     const char *desired_md5 = argv[2];
 
-    double t0 = omp_get_wtime();
     file_count = 0;
+    double t0 = omp_get_wtime();
 
     // Find all interesting files
     ftw(dirpath, map_tree, FTW_MAX_FILE_HANDLERS);
