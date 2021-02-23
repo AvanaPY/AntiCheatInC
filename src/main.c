@@ -52,12 +52,6 @@ int get_non_working_thread()
     return index;
 }
 
-// Sets a working thread boolean to a value
-void set_working_thread(int* index, bool value)
-{
-    thread_working[*index] = value;
-}
-
 // Computes the MD5 hash of a file
 void md5_of_file(const char* fpath, unsigned char c[])
 {
@@ -102,7 +96,7 @@ void* thread_entry(void* value)
     int container_offset = MD5_DIGEST_LENGTH * file_id;
     for(int i = 0; i < MD5_DIGEST_LENGTH; i++)
         (data->md5_buffer)[i] = c[i];
-    set_working_thread(&thread_id, false);
+    thread_working[thread_id] = false; // set_working_thread(&thread_id, false);
     pthread_mutex_unlock(&lock);
 }
 
@@ -179,7 +173,7 @@ int main(int argc, char **argv)
                 // printf("Found thread %i\n", thread_id);
                 found_thread = true;
                 data_list[i]->thread_id = thread_id;
-                set_working_thread(&thread_id, true);
+                thread_working[thread_id] = true; // set_working_thread(&thread_id, true);
                 pthread_create(&threads[thread_id], NULL, thread_entry, (void*)data_list[i]);
             }
         }
