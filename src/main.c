@@ -15,7 +15,7 @@
 #include <omp.h>
 
 #define MAX_THREADS 2
-#define MD5_READ_BYTES_SIZE 1024
+#define MD5_READ_BYTES_SIZE 1024 * 1024
 #define FTW_MAX_FILE_HANDLERS 20
 
 #define HASH_TIME_OUTPUT
