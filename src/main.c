@@ -24,7 +24,7 @@ const char* IGNORED_EXTENSIONS[] = { ".cfg" };
 const size_t IGNORED_EXTENSIONS_COUNT = sizeof(IGNORED_EXTENSIONS) / sizeof(char*);
 
 pthread_t threads[MAX_THREADS];
-volatile int thread_working[MAX_THREADS];
+bool thread_working[MAX_THREADS];
 
 int file_count;
 char** files;
