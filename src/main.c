@@ -89,9 +89,7 @@ void* thread_entry(void* value)
     md5_of_file(file, c);
     
     pthread_mutex_lock(&lock);
-    int container_offset = MD5_DIGEST_LENGTH * file_id;
-    for(int i = 0; i < MD5_DIGEST_LENGTH; i++)
-        (data->md5_buffer)[i] = c[i];
+    memcpy(data->md5_buffer, c, MD5_DIGEST_LENGTH);
     thread_working[thread_id] = false; // set_working_thread(&thread_id, false);
     pthread_mutex_unlock(&lock);
 }
