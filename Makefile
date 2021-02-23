@@ -7,7 +7,6 @@ GCC		:= GCC
 FLAGS	:= -I $(INC) -lcrypto -lssl -fopenmp
 
 run: clean compile test
-	@chmod +x $(OUT)
 
 $(BIN):
 	@mkdir -p $(BIN)
@@ -15,6 +14,7 @@ $(BIN):
 compile: $(BIN)
 	@echo Compiling...
 	@gcc $(MAIN) -o $(OUT) $(FLAGS) 
+	@-chmod +x $(OUT)
 
 clean:
 	-@rm -rf $(BIN)
