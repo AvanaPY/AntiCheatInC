@@ -23,7 +23,6 @@
 const char* IGNORED_EXTENSIONS[] = { ".cfg" };
 const size_t IGNORED_EXTENSIONS_COUNT = sizeof(IGNORED_EXTENSIONS) / sizeof(char*);
 
-pthread_mutex_t lock;
 pthread_t threads[MAX_THREADS];
 volatile int thread_working[MAX_THREADS];
 
@@ -88,10 +87,8 @@ void* thread_entry(void* value)
     unsigned char c[MD5_DIGEST_LENGTH]; 
     md5_of_file(file, c);
     
-    pthread_mutex_lock(&lock);
     memcpy(data->md5_buffer, c, MD5_DIGEST_LENGTH);
-    thread_working[thread_id] = false; // set_working_thread(&thread_id, false);
-    pthread_mutex_unlock(&lock);
+    thread_working[thread_id] = false;
 }
 
 // Maps the tree-file structure and saves it in `files`
@@ -120,12 +117,6 @@ int main(int argc, char **argv)
 {
     if(argc < 3){
         printf("Invalid arguments. Example usage: %s file-tree <desired_md5>", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    if(pthread_mutex_init(&lock, NULL) != 0)
-    {
-        printf("\nMutex lock initialization failed\n");
         return EXIT_FAILURE;
     }
 
@@ -164,10 +155,9 @@ int main(int argc, char **argv)
             
             if(thread_id >= 0)
             {
-                // printf("Found thread %i\n", thread_id);
                 found_thread = true;
                 data_list[i]->thread_id = thread_id;
-                thread_working[thread_id] = true; // set_working_thread(&thread_id, true);
+                thread_working[thread_id] = true;
                 pthread_create(&threads[thread_id], NULL, thread_entry, (void*)data_list[i]);
             }
         }
