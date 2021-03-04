@@ -27,12 +27,12 @@ const char* IGNORED_EXTENSIONS[] = { ".cfg" };
 const size_t IGNORED_EXTENSIONS_COUNT = sizeof(IGNORED_EXTENSIONS) / sizeof(char*);
 
 pthread_t threads[MAX_THREADS];
-bool thread_working[MAX_THREADS];
+volatile bool thread_working[MAX_THREADS];
 
 int file_count;
 char** files;
 
-typedef struct thread_data {
+typedef struct {
     int thread_id;
     int file_id;
     unsigned char* md5_buffer;

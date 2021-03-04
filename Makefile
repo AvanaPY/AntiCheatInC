@@ -6,7 +6,7 @@ SRC		:= ./src
 SRCS	:= $(wildcard $(SRC)/*.c)
 OBJS    := $(patsubst $(SRC)/%.c,$(OBJ)/%.o,$(SRCS))
 EXE		:= $(BIN)/main.exe
-FLAGS	:= -fopenmp -o3
+FLAGS	:= -fopenmp -O3
 LIBS	:= -lcrypto
 
 .PHONY: all run clean
@@ -28,7 +28,7 @@ clean:
 	-@rm -rf $(OBJ)
 	-@rm -rf $(BIN)
 
-test:
+test: $(EXE)
 	@echo TEST 1 hash_test_tree
 	@./$(BIN)/main.exe test_trees/hash_test_tree d12f92112d97e1454b859f775bed11ed
 	@echo TEST 2 pico-sdk-master
