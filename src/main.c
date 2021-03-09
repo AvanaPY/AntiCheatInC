@@ -92,6 +92,7 @@ void* thread_entry(void* value)
     
     memcpy(data->md5_buffer, c, MD5_DIGEST_LENGTH);
     thread_working[thread_id] = false;
+    return 0;
 }
 
 // Maps the tree-file structure and saves it in `files`
@@ -133,7 +134,6 @@ int main(int argc, char **argv)
     ftw(dirpath, map_tree, FTW_MAX_FILE_HANDLERS);
 
     // Create some containers for data
-    const int s = (const int)file_count;
     unsigned char** md5_hashes = malloc(file_count * sizeof(char*));     // MD5 hashes container
     thread_data **data_list = malloc(file_count * sizeof(thread_data*)); // Data for each thread and file container
 

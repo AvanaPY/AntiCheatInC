@@ -6,7 +6,7 @@ SRC		:= ./src
 SRCS	:= $(wildcard $(SRC)/*.c)
 OBJS    := $(patsubst $(SRC)/%.c,$(OBJ)/%.o,$(SRCS))
 EXE		:= $(BIN)/main.exe
-FLAGS	:= -fopenmp -O3
+FLAGS	:= -fopenmp -O3 -Wall
 LIBS	:= -lcrypto
 
 .PHONY: all run clean
