@@ -6,14 +6,12 @@
     No steal code P L O X 
 */
 #include <stdlib.h>
+#include <stdbool.h> 
+#include <stdio.h>
 
 #include <ftw.h>
-
-#include <stdio.h>
 #include <openssl/md5.h>
 #include <pthread.h>
-
-#include <stdbool.h> 
 #include <omp.h>
 
 #define MAX_THREADS 2
