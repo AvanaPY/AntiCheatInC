@@ -175,7 +175,15 @@ int main(int argc, char **argv)
     char hash_md5[33];
     for(int i = 0; i < 16; i++)
         sprintf(&hash_md5[i*2], "%02x", c[i]);
-    
+
+    // for(int i = 0; i < file_count; i++)
+    // {
+    //     printf("%2d ", i);
+    //     for(int j = 0; j < 16; j++)
+    //         printf("%02x", md5_hashes[i][j]);
+    //     printf("\n");
+    // }
+
     // Print the true hash and the computed hash
     printf("True hash: %s\n", desired_md5);
     printf("Game hash: %s\n", hash_md5);
